@@ -129,7 +129,6 @@ public final class MainVideoPlayer extends AppCompatActivity
         lp.screenBrightness = PlayerHelper.getScreenBrightness(getApplicationContext());
         getWindow().setAttributes(lp);
 
-        hideSystemUi();
         setContentView(R.layout.activity_main_player);
         playerImpl = new  VideoPlayerImpl(this);
         playerImpl.setup(findViewById(android.R.id.content));
@@ -278,13 +277,7 @@ public final class MainVideoPlayer extends AppCompatActivity
         if (playerImpl != null && playerImpl.queueVisible) return;
 
         final int visibility;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            visibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
-        } else {
             visibility = View.STATUS_BAR_VISIBLE;
-        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             @ColorInt final int systenUiColor =
@@ -293,25 +286,6 @@ public final class MainVideoPlayer extends AppCompatActivity
             getWindow().setNavigationBarColor(systenUiColor);
         }
 
-        getWindow().getDecorView().setSystemUiVisibility(visibility);
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-    }
-
-    private void hideSystemUi() {
-        if (DEBUG) Log.d(TAG, "hideSystemUi() called");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            int visibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                visibility |= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-            }
-            getWindow().getDecorView().setSystemUiVisibility(visibility);
-        }
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
     }
 
     private void toggleOrientation() {
@@ -499,7 +473,6 @@ public final class MainVideoPlayer extends AppCompatActivity
                     if (DEBUG) Log.d(TAG, "maxGestureLength = " + maxGestureLength);
 
                     volumeProgressBar.setMax(maxGestureLength);
-                    brightnessProgressBar.setMax(maxGestureLength);
 
                     setInitialGestureValues();
                 }
@@ -658,7 +631,6 @@ public final class MainVideoPlayer extends AppCompatActivity
 
         private void onQueueClicked() {
             queueVisible = true;
-            hideSystemUi();
 
             buildQueue();
             updatePlaybackButtons();
@@ -711,7 +683,6 @@ public final class MainVideoPlayer extends AppCompatActivity
         public void onDismiss(PopupMenu menu) {
             super.onDismiss(menu);
             if (isPlaying()) hideControls(DEFAULT_CONTROLS_DURATION, 0);
-            hideSystemUi();
         }
 
         @Override
@@ -850,11 +821,6 @@ public final class MainVideoPlayer extends AppCompatActivity
         public void hideControls(final long duration, long delay) {
             if (DEBUG) Log.d(TAG, "hideControls() called with: delay = [" + delay + "]");
             getControlsVisibilityHandler().removeCallbacksAndMessages(null);
-            getControlsVisibilityHandler().postDelayed(() ->
-                    animateView(getControlsRoot(), false, duration, 0,
-                            MainVideoPlayer.this::hideSystemUi),
-                    /*delayMillis=*/delay
-            );
         }
 
         private void updatePlaybackButtons() {
@@ -1019,7 +985,7 @@ public final class MainVideoPlayer extends AppCompatActivity
         private static final int MOVEMENT_THRESHOLD = 40;
 
         private final boolean isVolumeGestureEnabled = PlayerHelper.isVolumeGestureEnabled(getApplicationContext());
-        private final boolean isBrightnessGestureEnabled = PlayerHelper.isBrightnessGestureEnabled(getApplicationContext());
+        private final boolean isBrightnessGestureEnabled = false;
 
         private final int maxVolume = playerImpl.getAudioReactor().getMaxVolume();
 
@@ -1043,7 +1009,7 @@ public final class MainVideoPlayer extends AppCompatActivity
 
             boolean acceptAnyArea = isVolumeGestureEnabled != isBrightnessGestureEnabled;
             boolean acceptVolumeArea = acceptAnyArea || initialEvent.getX() > playerImpl.getRootView().getWidth() / 2;
-            boolean acceptBrightnessArea = acceptAnyArea || !acceptVolumeArea;
+            boolean acceptBrightnessArea = false;
 
             if (isVolumeGestureEnabled && acceptVolumeArea) {
                 playerImpl.getVolumeProgressBar().incrementProgressBy((int) distanceY);
@@ -1070,31 +1036,6 @@ public final class MainVideoPlayer extends AppCompatActivity
                 if (playerImpl.getBrightnessRelativeLayout().getVisibility() == View.VISIBLE) {
                     playerImpl.getBrightnessRelativeLayout().setVisibility(View.GONE);
                 }
-            } else if (isBrightnessGestureEnabled && acceptBrightnessArea) {
-                playerImpl.getBrightnessProgressBar().incrementProgressBy((int) distanceY);
-                float currentProgressPercent =
-                        (float) playerImpl.getBrightnessProgressBar().getProgress() / playerImpl.getMaxGestureLength();
-                WindowManager.LayoutParams layoutParams = getWindow().getAttributes();
-                layoutParams.screenBrightness = currentProgressPercent;
-                getWindow().setAttributes(layoutParams);
-
-                if (DEBUG) Log.d(TAG, "onScroll().brightnessControl, currentBrightness = " + currentProgressPercent);
-
-                final int resId =
-                        currentProgressPercent < 0.25 ? R.drawable.ic_brightness_low_white_72dp
-                        : currentProgressPercent < 0.75 ? R.drawable.ic_brightness_medium_white_72dp
-                        : R.drawable.ic_brightness_high_white_72dp;
-
-                playerImpl.getBrightnessImageView().setImageDrawable(
-                        AppCompatResources.getDrawable(getApplicationContext(), resId)
-                );
-
-                if (playerImpl.getBrightnessRelativeLayout().getVisibility() != View.VISIBLE) {
-                    animateView(playerImpl.getBrightnessRelativeLayout(), SCALE_AND_ALPHA, true, 200);
-                }
-                if (playerImpl.getVolumeRelativeLayout().getVisibility() == View.VISIBLE) {
-                    playerImpl.getVolumeRelativeLayout().setVisibility(View.GONE);
-                }
             }
             return true;
         }
@@ -1104,9 +1045,6 @@ public final class MainVideoPlayer extends AppCompatActivity
 
             if (playerImpl.getVolumeRelativeLayout().getVisibility() == View.VISIBLE) {
                 animateView(playerImpl.getVolumeRelativeLayout(), SCALE_AND_ALPHA, false, 200, 200);
-            }
-            if (playerImpl.getBrightnessRelativeLayout().getVisibility() == View.VISIBLE) {
-                animateView(playerImpl.getBrightnessRelativeLayout(), SCALE_AND_ALPHA, false, 200, 200);
             }
 
             if (playerImpl.isControlsVisible() && playerImpl.getCurrentState() == STATE_PLAYING) {

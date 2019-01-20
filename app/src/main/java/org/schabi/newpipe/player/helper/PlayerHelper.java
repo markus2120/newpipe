@@ -290,7 +290,7 @@ public class PlayerHelper {
     }
 
     public static void setScreenBrightness(@NonNull final Context context, final float setScreenBrightness) {
-        setScreenBrightness(context, setScreenBrightness, System.currentTimeMillis());
+        return;
     }
 
     ////////////////////////////////////////////////////////////////////////////

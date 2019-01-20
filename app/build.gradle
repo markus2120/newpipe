@@ -20,11 +20,7 @@ android {
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
-        debug {
-            multiDexEnabled true
-            debuggable true
-            applicationIdSuffix ".debug"
-        }
+
     }
 
     lintOptions {

@@ -361,6 +361,7 @@
                 android:background="@drawable/player_controls_bg"
                 android:gravity="center"
                 android:orientation="horizontal"
+                android:paddingBottom="50dp"
                 android:paddingLeft="16dp"
                 android:paddingRight="16dp">
 
