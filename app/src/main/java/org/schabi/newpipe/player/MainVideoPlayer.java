@@ -287,6 +287,9 @@ public final class MainVideoPlayer extends AppCompatActivity
         }
 
     }
+    private void hideSystemUi() {
+        if (DEBUG) Log.d(TAG, "hideSystemUi() called");
+    }
 
     private void toggleOrientation() {
         setLandscape(!isLandscape());
@@ -821,6 +824,12 @@ public final class MainVideoPlayer extends AppCompatActivity
         public void hideControls(final long duration, long delay) {
             if (DEBUG) Log.d(TAG, "hideControls() called with: delay = [" + delay + "]");
             getControlsVisibilityHandler().removeCallbacksAndMessages(null);
+            getControlsVisibilityHandler().postDelayed(() ->
+                    animateView(getControlsRoot(), false, duration, 0,
+                            MainVideoPlayer.this::hideSystemUi),
+                    /*delayMillis=*/delay
+            );
+
         }
 
         private void updatePlaybackButtons() {
